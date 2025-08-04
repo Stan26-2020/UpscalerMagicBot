@@ -6,7 +6,7 @@ from realesrgan import RealESRGANer
 import torch
 
 # Настройки бота
-TOKEN = "8253046153:AAGX4-QZf945eInesr8oyPqcTzFVXRHYCWM"
+TOKEN = ""
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
 
@@ -45,4 +45,5 @@ async def handle_image(message: types.Message):
         await message.reply(f"❌ Ошибка: {e}")
 
 if __name__ == '__main__':
+
     executor.start_polling(dp, skip_updates=True)
