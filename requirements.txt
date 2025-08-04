@@ -1,19 +1,21 @@
-torch>=2.5.0,<2.8
-numpy
-opencv-python
-Pillow
-fastapi
-uvicorn
-python-telegram-bot==20.0
-aiohttp
+# Telegram и асинхронность
+python-telegram-bot==20.5
+aiohttp==3.9.3
 
-# Для моделей и апскейлинга
-basicsr
-facexlib
-realesrgan
-gfpgan
-# Дополнительно, если будет SD
-diffusers==0.27.2
-transformers==4.41.0
-scipy
+# PyTorch (совместимая версия)
+torch==2.5.1
+torchvision==0.16.1
 
+# Real-ESRGAN и зависимости
+realesrgan==0.4.2
+facexlib==0.2.5
+gdown==5.1.0
+tqdm==4.66.4
+opencv-python-headless==4.9.0.80
+numpy==1.26.4
+scikit-image==0.22.0
+Pillow==10.3.0
+
+# CodeFormer (опционально)
+basicsr==1.4.2
+albumentations==1.4.1
