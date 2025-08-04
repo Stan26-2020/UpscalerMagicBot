@@ -1,6 +1,2 @@
-# === Telegram Bot ===
 python-telegram-bot==20.5
 aiohttp==3.9.3
-numpy
-scipy
-tqdm
