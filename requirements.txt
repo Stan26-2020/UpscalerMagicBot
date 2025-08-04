@@ -4,7 +4,7 @@ aiohttp==3.9.3
 
 # PyTorch (совместимая версия)
 torch==2.5.1
-torchvision==0.16.1
+torchvision==0.22.0
 
 # Real-ESRGAN и зависимости
 realesrgan==0.4.2
@@ -19,3 +19,4 @@ Pillow==10.3.0
 # CodeFormer (опционально)
 basicsr==1.4.2
 albumentations==1.4.1
+
