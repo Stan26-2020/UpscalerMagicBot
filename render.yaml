@@ -2,10 +2,11 @@ services:
   - name: fastapi-api
     type: web
     env: python
-    pythonVersion: 3.11.6
     repo: https://github.com/YOUR_USERNAME/YOUR_REPO
-    buildCommand: pip install --upgrade pip && pip install --prefer-binary -r requirements.txt
-    startCommand: uvicorn api.api:app --host 0.0.0.0 --port 10000
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.api:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
     envVars:
       - key: API_KEY
         value: your_api_key
@@ -15,10 +16,11 @@ services:
   - name: telegram-bot
     type: background
     env: python
-    pythonVersion: 3.11.6
     repo: https://github.com/YOUR_USERNAME/YOUR_REPO
-    buildCommand: pip install --upgrade pip && pip install --prefer-binary -r requirements.txt
+    branch: main
+    buildCommand: pip install -r requirements.txt
     startCommand: python bot/bot.py
+    autoDeploy: true
     envVars:
       - key: TELEGRAM_TOKEN
         value: your_bot_token
