@@ -1,0 +1,10 @@
+python-telegram-bot==20.5
+aiohttp==3.9.3
+torch
+opencv-python
+numpy
+realesrgan
+Pillow
+diffusers
+transformers
+git-lfs
