@@ -1,6 +1,4 @@
 #!/bin/bash
-pip install torch numpy opencv-python
-git clone https://github.com/xinntao/Real-ESRGAN
-cd Real-ESRGAN
+pyenv install 3.12.3
+pyenv global 3.12.3
 pip install -r requirements.txt
-python setup.py develop
