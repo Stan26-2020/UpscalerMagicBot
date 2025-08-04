@@ -5,7 +5,7 @@ services:
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
+    pythonVersion: 3.12.3
     envVars:
       - key: BOT_TOKEN
         value: your-telegram-bot-token
-    pythonVersion: 3.12.3
