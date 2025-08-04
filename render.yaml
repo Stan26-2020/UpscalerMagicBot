@@ -1,0 +1,24 @@
+services:
+  - name: fastapi-api
+    type: web
+    env: python
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.api:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: API_KEY
+        value: your_api_key
+      - key: TELEGRAM_TOKEN
+        value: your_bot_token
+
+  - name: telegram-bot
+    type: background
+    env: python
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot/bot.py
+    envVars:
+      - key: TELEGRAM_TOKEN
+        value: your_bot_token
+      - key: API_ENDPOINT
+        value: https://fastapi-api.onrender.com
