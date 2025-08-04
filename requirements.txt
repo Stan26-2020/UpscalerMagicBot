@@ -1,4 +1,7 @@
+python-telegram-bot==20.5
+aiohttp==3.9.3
 torch
-realesrgan
 opencv-python
 numpy
+realesrgan
+Pillow
