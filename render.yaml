@@ -1,28 +1,17 @@
+# 📦 Файл: render.yaml
 services:
-  - name: fastapi-api
-    type: web
+  - type: web
+    name: upscale-bot
     env: python
-    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
-    branch: main
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn api.api:app --host 0.0.0.0 --port $PORT
-    autoDeploy: true
-    envVars:
-      - key: API_KEY
-        value: your_api_key
-      - key: TELEGRAM_TOKEN
-        value: your_bot_token
-
-  - name: telegram-bot
-    type: background
-    env: python
-    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
-    branch: main
-    buildCommand: pip install -r requirements.txt
-    startCommand: python bot/bot.py
-    autoDeploy: true
+    buildCommand: |
+      pip install --upgrade pip setuptools
+      pip install Pillow==10.2.0 --prefer-binary
+      pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port 10000
     envVars:
       - key: TELEGRAM_TOKEN
-        value: your_bot_token
-      - key: API_ENDPOINT
-        value: https://fastapi-api.onrender.com
+        value: your_token_here
+      - key: MODEL_PATH
+        value: ./models/RealESRGAN_x4.pth
+    plan: starter
+    region: frankfurt
