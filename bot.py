@@ -2,10 +2,9 @@ import os
 import logging
 from telegram import Update
 from telegram.ext import (
-    Updater,
+    ApplicationBuilder,
     CommandHandler,
-    CallbackContext,
-    Filters
+    ContextTypes
 )
 
 # Настройка логов
@@ -19,20 +18,19 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("Токен не найден! Проверьте BOT_TOKEN в настройках Render")
 
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text("✅ Бот успешно запущен!")
+# Хендлер команды /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("✅ Бот успешно запущен!")
 
 def main():
     try:
-        updater = Updater(TOKEN, use_context=True)
-        dispatcher = updater.dispatcher
-        
-        dispatcher.add_handler(CommandHandler("start", start))
-        
+        app = ApplicationBuilder().token(TOKEN).build()
+
+        app.add_handler(CommandHandler("start", start))
+
         logger.info("Бот запускается...")
-        updater.start_polling()
-        updater.idle()
-        
+        app.run_polling()
+
     except Exception as e:
         logger.critical(f"Ошибка: {e}")
 
