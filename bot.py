@@ -2,7 +2,7 @@ import os
 import asyncio
 import uuid
 import logging
-from telegram import Update, Bot  # Добавлен импорт Bot
+from telegram import Update, Bot
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -25,14 +25,15 @@ TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("Токен бота не найден!")
 
+API_URL = os.getenv("API_URL", "")
+WEBHOOK_MODE = os.getenv("WEBHOOK_MODE", "false").lower() == "true"
+SECRET_TOKEN = os.getenv("SECRET_TOKEN", "")
+
 # Константы
 MODES = ["upscale", "face_restore", "illustration", "poster"]
 WORKER_COUNT = int(os.getenv("WORKER_COUNT", 3))
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 API_TIMEOUT = 30  # seconds
-API_URL = os.getenv("API_URL")  # Должен быть задан в переменных окружения!
-WEBHOOK_MODE = os.getenv("WEBHOOK_MODE", "false").lower() == "true"  # Добавлено
-SECRET_TOKEN = os.getenv("SECRET_TOKEN", "")  # Добавлено
 
 # Глобальная очередь
 queue = asyncio.Queue()
@@ -81,7 +82,6 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Worker-ы для обработки очереди ---
 async def worker(worker_id: int):
     logger.info(f"Worker {worker_id} started")
-    # Создаем отдельную сессию для каждого worker
     async with aiohttp.ClientSession(timeout=ClientTimeout(total=API_TIMEOUT)) as session:
         while True:
             try:
@@ -107,6 +107,9 @@ async def worker(worker_id: int):
                     await update.message.reply_text("⚙️ Обрабатываю изображение...")
                     
                     # Отправка в API
+                    if not API_URL:
+                        raise ValueError("API_URL не задан")
+                        
                     async with session.post(
                         f"{API_URL}/{mode}",
                         data=form
@@ -152,35 +155,34 @@ def setup_application():
     
     return app
 
-# Убрали on_shutdown, так как сессии теперь управляются внутри worker
-
-# --- Главная функция ---
-async def main():
-    app = setup_application()
-    
-    # Запуск worker-ов
+def run_workers():
+    """Запуск worker'ов в отдельном event loop"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     for i in range(WORKER_COUNT):
         asyncio.create_task(worker(i))
+    return loop
+
+# --- Главная функция ---
+def main():
+    worker_loop = run_workers()
+    app = setup_application()
     
     try:
         if WEBHOOK_MODE:
             PORT = int(os.getenv("PORT", 5000))
-            await app.run_webhook(
+            app.run_webhook(
                 listen="0.0.0.0",
                 port=PORT,
-                webhook_url=f"https://upscalermagicbot.onrender.com",
+                webhook_url="https://upscalermagicbot.onrender.com",
                 secret_token=SECRET_TOKEN
             )
         else:
-            await app.run_polling(drop_pending_updates=True)
-    except asyncio.CancelledError:
-        logger.info("Application shutdown requested")
+            app.run_polling(drop_pending_updates=True)
     except Exception as e:
         logger.critical(f"Application failed: {e}")
     finally:
-        # Явное завершение работы
-        await app.stop()
-        await app.shutdown()
+        worker_loop.close()
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
