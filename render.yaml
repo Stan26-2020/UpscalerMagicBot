@@ -47,3 +47,10 @@ services:
       - key: ENVIRONMENT
 
         value: "production"
+
+services:
+  - name: your-service
+    # ...
+    systemDependencies:
+      - libgl1
+      - libglib2.0-0
