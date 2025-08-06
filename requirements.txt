@@ -1,5 +1,3 @@
-python-telegram-bot==13.7
+python-telegram-bot==20.5  # Версия, совместимая с Python 3.13
 python-dotenv==1.0.0
-aiohttp>=3.9.3
-opencv-python-headless==4.9.0.80
-Pillow
+Pillow==10.3.0
