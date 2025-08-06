@@ -49,8 +49,12 @@ services:
         value: "production"
 
 services:
-  - name: your-service
-    # ...
+  - name: upscaler-bot
+    python:
+      version: 3.9.13
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
     systemDependencies:
       - libgl1
       - libglib2.0-0
