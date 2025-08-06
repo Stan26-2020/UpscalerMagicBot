@@ -155,29 +155,32 @@ def setup_application():
 # Убрали on_shutdown, так как сессии теперь управляются внутри worker
 
 # --- Главная функция ---
-async def main():  # Сделали асинхронной
+async def main():
     app = setup_application()
     
     # Запуск worker-ов
     for i in range(WORKER_COUNT):
         asyncio.create_task(worker(i))
     
-    # Режим работы
-    if WEBHOOK_MODE:
-        PORT = int(os.getenv("PORT", 10000))
-        await app.run_webhook(  # Добавили await
-            listen="0.0.0.0",
-            port=PORT,
-            webhook_url=f"https://upscalermagicbot.onrender.com",  # Замените на ваш URL
-            secret_token=SECRET_TOKEN,
-        )
-    else:
-        await app.run_polling(  # Добавили await
-            drop_pending_updates=True
-        )
-
-if __name__ == "__main__":
     try:
-        asyncio.run(main())  # Используем asyncio.run для запуска
+        if WEBHOOK_MODE:
+            PORT = int(os.getenv("PORT", 5000))
+            await app.run_webhook(
+                listen="0.0.0.0",
+                port=PORT,
+                webhook_url=f"https://upscalermagicbot.onrender.com",
+                secret_token=SECRET_TOKEN
+            )
+        else:
+            await app.run_polling(drop_pending_updates=True)
+    except asyncio.CancelledError:
+        logger.info("Application shutdown requested")
     except Exception as e:
         logger.critical(f"Application failed: {e}")
+    finally:
+        # Явное завершение работы
+        await app.stop()
+        await app.shutdown()
+
+if __name__ == "__main__":
+    asyncio.run(main())
