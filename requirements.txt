@@ -7,6 +7,7 @@ numpy>=2.0.0
 
 torch>=2.7.1
 torchvision>=0.18.1
-basicsr>=1.4.2
+git+https://github.com/XpixelGroup/BasicSR.git@master#egg=basicsr
 facexlib>=0.3.0
 gfpgan>=1.3.8
+
