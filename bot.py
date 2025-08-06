@@ -2,7 +2,7 @@ import os
 import asyncio
 import uuid
 import logging
-from telegram import Update
+from telegram import Update, Bot  # Добавлен импорт Bot
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -21,21 +21,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Настройки из переменных окружения
-TOKEN = os.getenv("BOT_TOKEN")  # или os.environ.get("BOT_TOKEN")
+TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("Токен бота не найден!")
-
-bot = Bot(token=TOKEN)
 
 # Константы
 MODES = ["upscale", "face_restore", "illustration", "poster"]
 WORKER_COUNT = int(os.getenv("WORKER_COUNT", 3))
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 API_TIMEOUT = 30  # seconds
+API_URL = os.getenv("API_URL")  # Должен быть задан в переменных окружения!
+WEBHOOK_MODE = os.getenv("WEBHOOK_MODE", "false").lower() == "true"  # Добавлено
+SECRET_TOKEN = os.getenv("SECRET_TOKEN", "")  # Добавлено
 
-# Глобальные объекты
+# Глобальная очередь
 queue = asyncio.Queue()
-async with aiohttp.ClientSession(timeout=ClientTimeout(total=API_TIMEOUT)) as session:
 
 # --- Обработчики команд ---
 async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -81,63 +81,65 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # --- Worker-ы для обработки очереди ---
 async def worker(worker_id: int):
     logger.info(f"Worker {worker_id} started")
-    while True:
-        try:
-            update, context = await queue.get()
-            filename = f"temp_{uuid.uuid4().hex}.jpg"
-            
+    # Создаем отдельную сессию для каждого worker
+    async with aiohttp.ClientSession(timeout=ClientTimeout(total=API_TIMEOUT)) as session:
+        while True:
             try:
-                # Скачивание фото
-                photo = update.message.photo[-1]
-                file = await photo.get_file()
-                await file.download_to_drive(filename)
+                update, context = await queue.get()
+                filename = f"temp_{uuid.uuid4().hex}.jpg"
                 
-                # Подготовка запроса к API
-                mode = context.user_data.get("mode", "upscale")
-                form = FormData()
-                form.add_field(
-                    "file",
-                    open(filename, "rb"),
-                    filename=filename,
-                    content_type="image/jpeg"
-                )
-                
-                await update.message.reply_text("⚙️ Обрабатываю изображение...")
-                
-                # Отправка в API
-                async with session.post(
-                    f"{API_URL}/{mode}",
-                    data=form
-                ) as response:
-                    if response.status == 200:
-                        result = await response.read()
-                        await update.message.reply_photo(result)
-                        logger.info(f"Worker {worker_id}: Image processed successfully")
-                    else:
-                        error = await response.text()
-                        await update.message.reply_text(f"❌ Ошибка API: {error}")
-                        logger.error(f"API error: {error}")
-                        
-            except asyncio.TimeoutError:
-                await update.message.reply_text("⌛ Таймаут при обработке изображения")
-                logger.warning(f"Worker {worker_id}: Timeout occurred")
-                
-            except Exception as e:
-                await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
-                logger.error(f"Worker {worker_id} error: {e}")
-                
-            finally:
-                # Очистка временных файлов
                 try:
-                    if os.path.exists(filename):
-                        os.remove(filename)
-                except:
-                    pass
-                
-                queue.task_done()
-                
-        except Exception as e:
-            logger.critical(f"Worker {worker_id} crashed: {e}")
+                    # Скачивание фото
+                    photo = update.message.photo[-1]
+                    file = await context.bot.get_file(photo.file_id)
+                    await file.download_to_drive(filename)
+                    
+                    # Подготовка запроса к API
+                    mode = context.user_data.get("mode", "upscale")
+                    form = FormData()
+                    form.add_field(
+                        "file",
+                        open(filename, "rb"),
+                        filename=filename,
+                        content_type="image/jpeg"
+                    )
+                    
+                    await update.message.reply_text("⚙️ Обрабатываю изображение...")
+                    
+                    # Отправка в API
+                    async with session.post(
+                        f"{API_URL}/{mode}",
+                        data=form
+                    ) as response:
+                        if response.status == 200:
+                            result = await response.read()
+                            await update.message.reply_photo(result)
+                            logger.info(f"Worker {worker_id}: Image processed successfully")
+                        else:
+                            error = await response.text()
+                            await update.message.reply_text(f"❌ Ошибка API: {error}")
+                            logger.error(f"API error: {error}")
+                            
+                except asyncio.TimeoutError:
+                    await update.message.reply_text("⌛ Таймаут при обработке изображения")
+                    logger.warning(f"Worker {worker_id}: Timeout occurred")
+                    
+                except Exception as e:
+                    await update.message.reply_text(f"⚠️ Ошибка: {str(e)}")
+                    logger.error(f"Worker {worker_id} error: {e}")
+                    
+                finally:
+                    # Очистка временных файлов
+                    try:
+                        if os.path.exists(filename):
+                            os.remove(filename)
+                    except:
+                        pass
+                    
+                    queue.task_done()
+                    
+            except Exception as e:
+                logger.critical(f"Worker {worker_id} crashed: {e}")
 
 # --- Инициализация приложения ---
 def setup_application():
@@ -150,12 +152,10 @@ def setup_application():
     
     return app
 
-async def on_shutdown():
-    await session.close()
-    logger.info("Application shutdown")
+# Убрали on_shutdown, так как сессии теперь управляются внутри worker
 
 # --- Главная функция ---
-def main():
+async def main():  # Сделали асинхронной
     app = setup_application()
     
     # Запуск worker-ов
@@ -164,24 +164,20 @@ def main():
     
     # Режим работы
     if WEBHOOK_MODE:
-        PORT = int(os.getenv("PORT", 5000))
-        app.run_webhook(
+        PORT = int(os.getenv("PORT", 10000))
+        await app.run_webhook(  # Добавили await
             listen="0.0.0.0",
             port=PORT,
-            webhook_url=f"https://your-bot.onrender.com/webhook",
+            webhook_url=f"https://upscalermagicbot.onrender.com",  # Замените на ваш URL
             secret_token=SECRET_TOKEN,
-            on_shutdown=on_shutdown
         )
     else:
-        app.run_polling(
-            on_shutdown=on_shutdown,
+        await app.run_polling(  # Добавили await
             drop_pending_updates=True
         )
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())  # Используем asyncio.run для запуска
     except Exception as e:
-
         logger.critical(f"Application failed: {e}")
-
