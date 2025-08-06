@@ -1,6 +1,6 @@
 import os
 import logging
-from telegram.ext import Updater, CommandHandler
+from telegram.ext import ApplicationBuilder, CommandHandler
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -9,18 +9,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("❌ Токен не найден! Проверьте BOT_TOKEN в настройках Render")
 
-def start(update, context):
-    update.message.reply_text("✅ Бот успешно запущен!")
+async def start(update, context):
+    await update.message.reply_text("🚀 Бот успешно запущен!")
 
 def main():
-    updater = Updater(TOKEN, use_context=True)
-    updater.dispatcher.add_handler(CommandHandler("start", start))
-    updater.start_polling()
-    updater.idle()
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.run_polling()
 
 if __name__ == "__main__":
-    if not TOKEN:
-        logger.error("Токен не найден! Задайте BOT_TOKEN в настройках Render")
-    else:
-        main()
+    main()
