@@ -21,10 +21,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Настройки из переменных окружения
-TOKEN = os.getenv("TELEGRAM_TOKEN")
-API_URL = os.getenv("API_ENDPOINT", "https://your-api.onrender.com/process")
-WEBHOOK_MODE = os.getenv("WEBHOOK_MODE", "false").lower() == "true"
-SECRET_TOKEN = os.getenv("WEBHOOK_SECRET")  # Для защиты вебхука
+TOKEN = os.getenv("BOT_TOKEN")  # или os.environ.get("BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("Токен бота не найден!")
+
+bot = Bot(token=TOKEN)
 
 # Константы
 MODES = ["upscale", "face_restore", "illustration", "poster"]
@@ -181,4 +182,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as e:
+
         logger.critical(f"Application failed: {e}")
