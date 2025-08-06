@@ -68,9 +68,10 @@ services:
     name: telegram-bot
     env: python
     plan: free
-    pythonVersion: "3.10.13"  # Явно указываем версию Python
+    pythonVersion: "3.11.9"  # Явно указываем версию Python
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
 
     
+
 
