@@ -1,17 +1,48 @@
-# 📦 Файл: render.yaml
 services:
-  - type: web
-    name: upscale-bot
-    env: python
+  - name: fastapi-api
+    type: web
+    plan: free
+    region: frankfurt  # Или другой регион: mumbai, ohio, oregon
+    repo: https://github.com/Stan26-2020/UpscalerMagicBot/tree/main
+    branch: main
+    runtime: python
+    pythonVersion: "3.9.7"
     buildCommand: |
-      pip install --upgrade pip setuptools
-      pip install Pillow==10.2.0 --prefer-binary
+      python -m pip install --upgrade pip
       pip install -r requirements.txt
-    startCommand: uvicorn api.main:app --host 0.0.0.0 --port 10000
+    startCommand: uvicorn api.api:app --host 0.0.0.0 --port $PORT --workers 2
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: API_KEY
+        sync: false  # Устанавливается вручную в панели Render
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: ENVIRONMENT
+        value: "production"
+    healthCheckPath: /health
+    healthCheckTimeout: 120
+
+  - name: telegram-bot
+    type: worker  # Лучше подходит для long-running процессов
+    plan: free
+    region: frankfurt  # Должен совпадать с регионом API
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO
+    branch: main
+    runtime: python
+    pythonVersion: "3.9.7"
+    buildCommand: |
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: python -m bot.bot
+    autoDeploy: true
     envVars:
       - key: TELEGRAM_TOKEN
-        value: your_token_here
-      - key: MODEL_PATH
-        value: ./models/RealESRGAN_x4.pth
-    plan: starter
-    region: frankfurt
+        sync: false
+      - key: API_ENDPOINT
+        value: https://fastapi-api.onrender.com
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: ENVIRONMENT
+        value: "production"
