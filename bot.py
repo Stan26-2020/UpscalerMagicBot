@@ -2,41 +2,54 @@ import os
 import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
-# Отключаем ненужные логи httpx
-logging.getLogger("httpx").setLevel(logging.WARNING)
+# Настройка логирования
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
+# Отключаем лишние логи httpx
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    logger.error("Токен бота не найден!")
+    exit(1)
 
 def start(update, context):
-    update.message.reply_text("🤖 Бот работает! Отправьте мне фото")
+    """Обработчик команды /start"""
+    update.message.reply_text("🤖 Бот активен! Отправьте мне фото")
 
 def handle_photo(update, context):
-    update.message.reply_text("📸 Фото получено. Идет обработка...")
-    # Здесь будет ваша логика обработки фото
-    update.message.reply_text("✅ Обработка завершена")
+    """Обработчик фотографий"""
+    try:
+        photo = update.message.photo[-1]
+        update.message.reply_text("📸 Фото получено, начинаю обработку...")
+        
+        # Здесь будет ваша логика обработки
+        # Например: file = photo.get_file(); file.download('image.jpg')
+        
+        update.message.reply_text("✅ Обработка завершена")
+    except Exception as e:
+        logger.error(f"Ошибка обработки фото: {e}")
+        update.message.reply_text("⚠️ Произошла ошибка при обработке")
 
 def main():
+    """Основная функция"""
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
     
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(MessageHandler(Filters.photo, handle_photo))
     
-    logger.info("Бот запущен в polling-режиме")
+    logger.info("Бот запущен в режиме polling")
     updater.start_polling(
-        poll_interval=1.0,
-        timeout=10,
+        poll_interval=3.0,  # Увеличен интервал опроса
+        timeout=15,
         drop_pending_updates=True
     )
     updater.idle()
 
 if __name__ == "__main__":
-    if not TOKEN:
-        logger.critical("Токен не найден! Задайте BOT_TOKEN в настройках Render")
-    else:
-        main()
+    main()
