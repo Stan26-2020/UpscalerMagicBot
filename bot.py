@@ -35,7 +35,7 @@ API_TIMEOUT = 30  # seconds
 
 # Глобальные объекты
 queue = asyncio.Queue()
-session = aiohttp.ClientSession(timeout=ClientTimeout(total=API_TIMEOUT))
+async with aiohttp.ClientSession(timeout=ClientTimeout(total=API_TIMEOUT)) as session:
 
 # --- Обработчики команд ---
 async def set_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -184,3 +184,4 @@ if __name__ == "__main__":
     except Exception as e:
 
         logger.critical(f"Application failed: {e}")
+
