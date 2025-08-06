@@ -154,34 +154,37 @@ def setup_application():
     
     return app
 
-def run_workers():
-    """Запуск worker'ов в отдельном event loop"""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    for i in range(WORKER_COUNT):
-        asyncio.create_task(worker(i))
-    return loop
-
-# --- Главная функция ---
-def main():
-    worker_loop = run_workers()
+async def run_bot():
+    # Запуск worker'ов
+    worker_tasks = [asyncio.create_task(worker(i)) for i in range(WORKER_COUNT)]
+    
     app = setup_application()
     
     try:
         if WEBHOOK_MODE:
             PORT = int(os.getenv("PORT", 5000))
-            app.run_webhook(
+            await app.run_webhook(
                 listen="0.0.0.0",
                 port=PORT,
-                webhook_url="https://your-bot.onrender.com/webhook",
+                webhook_url="https://upscalermagicbot.onrender.com",
                 secret_token=SECRET_TOKEN
             )
         else:
-            app.run_polling(drop_pending_updates=True)
+            await app.run_polling(drop_pending_updates=True)
+    except asyncio.CancelledError:
+        logger.info("Shutting down...")
     except Exception as e:
         logger.critical(f"Application failed: {e}")
     finally:
-        worker_loop.close()
+        # Отмена всех задач worker'ов
+        for task in worker_tasks:
+            task.cancel()
+        await asyncio.gather(*worker_tasks, return_exceptions=True)
+        await app.shutdown()
+        await app.stop()
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(run_bot())
+    except Exception as e:
+        logger.critical(f"Fatal error: {e}")
