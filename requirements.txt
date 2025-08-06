@@ -2,5 +2,6 @@ python-telegram-bot==20.5
 aiohttp==3.9.3
 python-dotenv==1.0.0
 opencv-python-headless==4.9.0.80
-Pillow==9.5.0  # Гарантированно работает с Python 3.9
+Pillow>=10.0.0  # Или последняя стабильная версия
 numpy==1.26.4
+
