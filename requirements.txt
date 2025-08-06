@@ -2,7 +2,7 @@ python-telegram-bot==20.5
 aiohttp==3.9.3
 python-dotenv==1.0.0
 opencv-python-headless==4.9.0.80
-Pillow==10.3.0  # Обновленная версия с поддержкой Python 3.9
+Pillow==10.1.0  # Проверенная стабильная версия для Python 3.9
 numpy==1.26.4
 
 # Ускорение обработки
@@ -29,3 +29,4 @@ python-dotenv==1.0.0
 opencv-python-headless==4.9.0.80
 Pillow==10.3.0  # Обновленная версия с поддержкой Python 3.9
 numpy==1.26.4
+
