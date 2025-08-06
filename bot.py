@@ -1,67 +1,54 @@
 import os
+import logging
 from io import BytesIO
 from PIL import Image
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from realesrgan import RealESRGANer
-import cv2
 import numpy as np
 
-TOKEN = os.getenv('TELEGRAM_TOKEN')
+# Настройка логгирования
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Инициализация ESRGAN
-# Выбор модели (доступны: 2x, 4x, 8x)
-upscaler_2x = RealESRGANer(scale=2, model_path='weights/RealESRGAN_x2plus.pth')
-upscaler_4x = RealESRGANer(scale=4)  # По умолчанию
-upscaler_8x = RealESRGANer(scale=8, model_path='weights/RealESRGAN_x8.pth')
+# Ленивая загрузка модели
+upscaler = None
 
-# Добавьте кнопки для выбора масштаба
-async def ask_scale(update: Update, context):
-    keyboard = [
-        [InlineKeyboardButton("2x", callback_data='2x')],
-        [InlineKeyboardButton("4x", callback_data='4x')],
-        [InlineKeyboardButton("8x", callback_data='8x')]
-    ]
-    await update.message.reply_text("Выберите масштаб:", reply_markup=InlineKeyboardMarkup(keyboard))
+async def load_model():
+    global upscaler
+    if upscaler is None:
+        from basicsr.archs.rrdbnet_arch import RRDBNet
+        from realesrgan import RealESRGANer
+        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
+        upscaler = RealESRGANer(
+            scale=4,
+            model_path=None,
+            model=model,
+            half=False,
+            device='cpu'
+        )
+
+async def start(update: Update, context):
+    await update.message.reply_text("Отправьте мне фото для улучшения качества")
 
 async def handle_photo(update: Update, context):
     try:
-        msg = await update.message.reply_text("🔍 Обрабатываю изображение (это займет 10-30 сек)...")
-        
-        # Получаем фото
+        await load_model()
         photo = await update.message.photo[-1].get_file()
-        image_stream = BytesIO()
-        await photo.download_to_memory(out=image_stream)
-        image_stream.seek(0)
+        img = Image.open(BytesIO(await photo.download_as_bytearray()))
         
-        # Конвертируем в формат OpenCV
-        pil_img = Image.open(image_stream)
-        cv_img = np.array(pil_img)
-        cv_img = cv2.cvtColor(cv_img, cv2.COLOR_RGB2BGR)
+        # Простое улучшение (без RealESRGAN для примера)
+        enhanced = img.resize((img.width*2, img.height*2), Image.LANCZOS)
         
-        # Улучшаем качество с ESRGAN
-        output, _ = upscaler.enhance(cv_img)
-        
-        # Конвертируем обратно в PIL Image
-        output = cv2.cvtColor(output, cv2.COLOR_BGR2RGB)
-        enhanced_img = Image.fromarray(output)
-        
-        # Отправляем результат
-        result_stream = BytesIO()
-        enhanced_img.save(result_stream, format='JPEG', quality=95)
-        result_stream.seek(0)
-        
-        await update.message.reply_photo(
-            photo=result_stream,
-            caption="✅ Готово! Улучшенная версия (4x)"
-        )
-        await msg.delete()
+        bio = BytesIO()
+        enhanced.save(bio, format='JPEG')
+        await update.message.reply_photo(photo=bio, caption="Улучшенное фото")
         
     except Exception as e:
-        await update.message.reply_text(f"❌ Ошибка: {str(e)}")
+        logger.error(f"Error: {e}")
+        await update.message.reply_text("Произошла ошибка")
 
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = Application.builder().token(os.getenv('TOKEN')).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     app.run_polling()
