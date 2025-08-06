@@ -2,7 +2,7 @@ import os
 import asyncio
 import uuid
 import logging
-from telegram import Update, Bot
+from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 # Настройки из переменных окружения
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
-    raise ValueError("Токен бота не найден!")
+    raise ValueError("Токен бота не найден! Установите BOT_TOKEN в настройках Render")
 
 API_URL = os.getenv("API_URL", "")
 WEBHOOK_MODE = os.getenv("WEBHOOK_MODE", "false").lower() == "true"
@@ -106,9 +106,8 @@ async def worker(worker_id: int):
                     
                     await update.message.reply_text("⚙️ Обрабатываю изображение...")
                     
-                    # Отправка в API
                     if not API_URL:
-                        raise ValueError("API_URL не задан")
+                        raise ValueError("API_URL не задан в переменных окружения")
                         
                     async with session.post(
                         f"{API_URL}/{mode}",
@@ -174,7 +173,7 @@ def main():
             app.run_webhook(
                 listen="0.0.0.0",
                 port=PORT,
-                webhook_url="https://upscalermagicbot.onrender.com",
+                webhook_url="https://your-bot.onrender.com/webhook",
                 secret_token=SECRET_TOKEN
             )
         else:
