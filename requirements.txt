@@ -1,13 +1,5 @@
-python-telegram-bot>=20.0
+python-telegram-bot==20.5
 python-dotenv==1.0.0
 aiohttp==3.9.3
-python-dotenv==1.0.0
 opencv-python-headless==4.9.0.80
-Pillow==10.0.0
-numpy==1.26.4
- 
-
-
-
-
-
+Pillow==9.5.0  # Версия, которая точно работает
