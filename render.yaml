@@ -53,8 +53,12 @@ services:
     python:
       version: 3.9.13
     buildCommand: |
-      pip install --upgrade pip
+      python -m pip install --upgrade pip
+      pip install wheel setuptools
       pip install -r requirements.txt
     systemDependencies:
       - libgl1
       - libglib2.0-0
+      - libsm6
+      - libxext6
+      - libxrender1
