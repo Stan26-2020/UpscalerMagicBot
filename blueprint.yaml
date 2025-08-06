@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: fastapi-api
+    repo: https://github.com/stan26-2020/image-bot-platform
+    branch: main
+    env: python
+    buildCommand: "bash scripts/install_models.sh && pip install -r requirements.txt"
+    startCommand: "uvicorn api.api:app --host 0.0.0.0 --port 10000"
+    pythonVersion: 3.12.3
+    envVars:
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: API_KEY
+        sync: false
+      - key: MODELS_PATH
+        value: models/
+
+  - type: worker
+    name: telegram-bot
+    repo: https://github.com/stan26-2020/image-bot-platform
+    branch: main
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python bot/bot.py"
+    pythonVersion: 3.12.3
+    envVars:
+      - key: TELEGRAM_TOKEN
+        sync: false
+      - key: API_ENDPOINT
+        value: https://fastapi-api.onrender.com
+
+  - type: static
+    name: web-ui
+    repo: https://github.com/stan26-2020/image-bot-platform
+    branch: main
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: "web-ui/dist"
