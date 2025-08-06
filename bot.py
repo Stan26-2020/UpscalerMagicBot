@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
+
 import os
 import logging
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
@@ -53,3 +56,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
