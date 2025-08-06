@@ -6,7 +6,7 @@ services:
     repo: https://github.com/Stan26-2020/UpscalerMagicBot/tree/main
     branch: main
     runtime: python
-    pythonVersion: "3.9.7"
+    python version: 3.9.13
     buildCommand: |
       python -m pip install --upgrade pip
       pip install -r requirements.txt
@@ -31,7 +31,7 @@ services:
     repo: https://github.com/YOUR_USERNAME/YOUR_REPO
     branch: main
     runtime: python
-    pythonVersion: "3.9.7"
+    python version: 3.9.13
     buildCommand: |
       python -m pip install --upgrade pip
       pip install -r requirements.txt
@@ -45,4 +45,5 @@ services:
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: ENVIRONMENT
+
         value: "production"
