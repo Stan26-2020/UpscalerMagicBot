@@ -1,56 +1,81 @@
 import os
 import logging
 from io import BytesIO
-from PIL import Image
+import httpx
+from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-import numpy as np
 
-# Настройка логгирования
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+# Настройка
+load_dotenv()
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
-# Ленивая загрузка модели
-upscaler = None
+TOKEN = os.getenv('TELEGRAM_TOKEN')
+UPSCALE_API_KEY = os.getenv('UPSCALE_API_KEY')
+MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
-async def load_model():
-    global upscaler
-    if upscaler is None:
-        from basicsr.archs.rrdbnet_arch import RRDBNet
-        from realesrgan import RealESRGANer
-        model = RRDBNet(num_in_ch=3, num_out_ch=3, num_feat=64, num_block=23, num_grow_ch=32, scale=4)
-        upscaler = RealESRGANer(
-            scale=4,
-            model_path=None,
-            model=model,
-            half=False,
-            device='cpu'
-        )
+class ImageUpscaler:
+    def __init__(self):
+        self.client = httpx.AsyncClient(timeout=30.0)
+
+    async def upscale(self, image_bytes: bytes) -> BytesIO:
+        """Улучшение качества через API"""
+        try:
+            response = await self.client.post(
+                "https://api.upscale.media/v1/image",
+                files={"image": ("photo.jpg", image_bytes)},
+                headers={"Authorization": f"Bearer {UPSCALE_API_KEY}"}
+            )
+            if response.status_code == 200:
+                return BytesIO(response.content)
+        except Exception as e:
+            logger.error(f"API error: {e}")
+        return None
 
 async def start(update: Update, context):
-    await update.message.reply_text("Отправьте мне фото для улучшения качества")
+    await update.message.reply_text(
+        "📷 Отправьте мне фото для улучшения качества!\n"
+        "⚠️ Максимальный размер: 5MB\n"
+        "⏱ Обработка занимает 10-20 секунд"
+    )
 
 async def handle_photo(update: Update, context):
     try:
-        await load_model()
+        if update.message.photo[-1].file_size > MAX_FILE_SIZE:
+            await update.message.reply_text("❌ Файл слишком большой (макс. 5MB)")
+            return
+
+        msg = await update.message.reply_text("🔍 Обрабатываю изображение...")
         photo = await update.message.photo[-1].get_file()
-        img = Image.open(BytesIO(await photo.download_as_bytearray()))
-        
-        # Простое улучшение (без RealESRGAN для примера)
-        enhanced = img.resize((img.width*2, img.height*2), Image.LANCZOS)
-        
-        bio = BytesIO()
-        enhanced.save(bio, format='JPEG')
-        await update.message.reply_photo(photo=bio, caption="Улучшенное фото")
-        
+        image_bytes = await photo.download_as_bytearray()
+
+        upscaler = ImageUpscaler()
+        enhanced = await upscaler.upscale(image_bytes)
+
+        if enhanced:
+            await update.message.reply_photo(
+                photo=enhanced,
+                caption="✅ Готово! Улучшенная версия"
+            )
+        else:
+            await update.message.reply_text("❌ Ошибка обработки, попробуйте позже")
+
+        await msg.delete()
+
     except Exception as e:
         logger.error(f"Error: {e}")
-        await update.message.reply_text("Произошла ошибка")
+        await update.message.reply_text("⚠️ Произошла ошибка")
 
 def main():
-    app = Application.builder().token(os.getenv('TOKEN')).build()
+    app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    
+    logger.info("Bot started")
     app.run_polling()
 
 if __name__ == "__main__":
